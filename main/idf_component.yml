@@ -1,0 +1,4 @@
+## IDF Component Manager Manifest, see documentation:
+## https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/tools/idf-component-manager.html
+dependencies:
+  lvgl/lvgl: "9.5.0"

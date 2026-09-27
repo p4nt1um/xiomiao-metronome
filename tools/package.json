@@ -1,0 +1,11 @@
+{
+  "name": "xiomiao-metronome-font-tools",
+  "private": true,
+  "description": "lv_font_conv 中文字体子集生成工具",
+  "scripts": {
+    "fonts": "node gen_fonts.js"
+  },
+  "dependencies": {
+    "lv_font_conv": "github:lvgl/lv_font_conv"
+  }
+}
