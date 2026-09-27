@@ -11,6 +11,7 @@ monitor_log*.txt
 *_check.txt
 precision_log.txt
 build_log.txt
+gesture_log*.txt
 
 # 编辑器/系统杂项
 *.swp
