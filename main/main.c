@@ -24,6 +24,7 @@
 #include "bsp_buttons.h"
 #include "bsp_buzzer.h"
 #include "bsp_lcd.h"
+#include "bsp_led.h"
 #include "bsp_light.h"
 #include "light_ctl.h"
 #include "metro_engine.h"
@@ -104,6 +105,7 @@ void app_main(void)
     app_settings_init();
     bsp_buttons_init();
     bsp_buzzer_init();
+    bsp_led_init();
     bsp_light_init();
     light_ctl_init();
     bsp_lcd_init();

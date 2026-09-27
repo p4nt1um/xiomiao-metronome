@@ -10,6 +10,10 @@
 int app_settings_get_light_ctrl(void);
 void app_settings_set_light_ctrl(int on);
 
+/* LED 跟拍开关（独立持久化，1 开 0 关，默认开） */
+int app_settings_get_led_follow(void);
+void app_settings_set_led_follow(int on);
+
 /* 上电从 NVS 读取（首次启动用默认值：120BPM 4/4 四分音符 重音开 音量6 计时关） */
 void app_settings_init(void);
 

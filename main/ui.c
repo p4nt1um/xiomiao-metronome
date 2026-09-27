@@ -17,6 +17,7 @@
 #include "app_settings.h"
 #include "bsp_buttons.h"
 #include "bsp_buzzer.h"
+#include "bsp_led.h"
 #include "light_ctl.h"
 #include "metro_engine.h"
 #include "ui.h"
@@ -56,13 +57,14 @@ typedef enum {
     SET_ROW_MUTE,
     SET_ROW_TIMER,
     SET_ROW_LCTRL,
+    SET_ROW_LED,
     SET_ROW_TAP,
     SET_ROW_RESET,
     SET_ROW_COUNT,
 } set_row_id_t;
 
 static const char *s_set_labels[SET_ROW_COUNT] = {
-    "拍号", "细分", "重音", "音量", "静音小节", "练习计时", "光控暂停", "点击测速", "恢复默认",
+    "拍号", "细分", "重音", "音量", "静音小节", "练习计时", "光控暂停", "LED跟拍", "点击测速", "恢复默认",
 };
 static const char *s_subdiv_names[METRO_SUBDIV_MAX] = {"四分", "八分", "三连音", "十六分"};
 static const int s_timer_choices[APP_TIMER_CHOICE_COUNT] = APP_TIMER_CHOICES;
@@ -113,6 +115,43 @@ static uint32_t s_tap_iv[TAP_DOT_MAX];
 static uint8_t s_tap_iv_count;
 static uint32_t s_tap_iv_sum;
 static uint16_t s_tap_total;
+
+/* LED 跟拍：强拍 LED1、弱拍 LED2，亮 LED_ON_MS 后自动灭 */
+#define LED_ON_MS       80
+static uint32_t s_led_off_at[2];
+
+static void leds_beat(const metro_beat_event_t *ev)
+{
+    if (app_settings_get_led_follow() <= 0) {
+        return;
+    }
+    const int led = (ev->beat == 0) ? 1 : 2;
+    const int other = 3 - led;
+    bsp_led_set(led, true);
+    s_led_off_at[led - 1] = lv_tick_get() + LED_ON_MS;
+    bsp_led_set(other, false);
+    s_led_off_at[other - 1] = 0;
+}
+
+static void leds_poll(void)
+{
+    if (metro_engine_state() != METRO_STATE_RUNNING) {
+        for (int i = 0; i < 2; ++i) {
+            if (s_led_off_at[i] != 0) {
+                bsp_led_set(i + 1, false);
+                s_led_off_at[i] = 0;
+            }
+        }
+        return;
+    }
+    const uint32_t now = lv_tick_get();
+    for (int i = 0; i < 2; ++i) {
+        if (s_led_off_at[i] != 0 && (int32_t)(now - s_led_off_at[i]) >= 0) {
+            bsp_led_set(i + 1, false);
+            s_led_off_at[i] = 0;
+        }
+    }
+}
 
 /* 恢复默认长按状态见 reset_hold_poll() */
 
@@ -423,6 +462,9 @@ static void set_value_text(char *buf, size_t len, int row)
     }
     case SET_ROW_LCTRL:
         snprintf(buf, len, "◀ %s ▶", app_settings_get_light_ctrl() ? "开" : "关");
+        break;
+    case SET_ROW_LED:
+        snprintf(buf, len, "◀ %s ▶", app_settings_get_led_follow() ? "开" : "关");
         break;
     case SET_ROW_TAP:
         snprintf(buf, len, "A:进入");
@@ -809,11 +851,14 @@ static void settings_adjust(int dir)
     case SET_ROW_LCTRL:
         app_settings_set_light_ctrl(dir > 0);
         break;
+    case SET_ROW_LED:
+        app_settings_set_led_follow(dir > 0);
+        break;
     default:
         return;
     }
 
-    if (s_ui.sel != SET_ROW_TIMER && s_ui.sel != SET_ROW_LCTRL) {
+    if (s_ui.sel != SET_ROW_TIMER && s_ui.sel != SET_ROW_LCTRL && s_ui.sel != SET_ROW_LED) {
         apply_cfg_change();
     }
     settings_refresh_rows();
@@ -975,6 +1020,8 @@ void ui_init(lv_group_t *group)
 
 void ui_on_beat(const metro_beat_event_t *ev)
 {
+    leds_beat(ev); /* LED 跟拍不受当前页面影响 */
+
     if (s_ui.page != UI_PAGE_MAIN) {
         return;
     }
@@ -987,6 +1034,7 @@ void ui_poll(void)
 {
     beeps_poll();
     reset_hold_poll();
+    leds_poll();
 
     if (s_ui.page == UI_PAGE_TAP && s_tap_last_ms != 0 &&
         lv_tick_elaps(s_tap_last_ms) > TAP_TIMEOUT_MS) {

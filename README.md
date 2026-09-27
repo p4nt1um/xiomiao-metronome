@@ -35,6 +35,8 @@
 - **光控暂停**：光照传感器（GPIO36）**遮一下切换**——遮住约 0.6 秒 = 暂停/恢复切换，
   松开无动作，开灯/拿开手不误触；暂停立即静音、状态栏「已暂停」、低音一声反馈，
   恢复从第 1 拍强拍起步，练习计时同步冻结；设置页可开关（默认开）
+- **LED 跟拍**：板载 LED1/LED2（经 GD32 协处理器 I2C 控制）随拍闪烁——强拍 LED1、
+  弱拍 LED2 各亮 80ms；静音小节训练的静音段灯光照常打拍子；设置页可开关（默认开）
 - **恢复默认**：设置页 A 键长按 1 秒确认
 
 ## 按键表
@@ -78,6 +80,7 @@ main/
 ├── bsp_lcd.c/.h      # ST7735 160x128 横屏 SPI 驱动 + LVGL 双缓冲接入
 ├── bsp_buttons.c/.h  # 6 键轮询 + 25ms 消抖 + LVGL keypad indev
 ├── bsp_buzzer.c/.h   # GPIO14 无源蜂鸣器 LEDC：tone(freq, duty, duration)
+├── bsp_led.c/.h      # 板载 LED1/LED2（GD32 协处理器 I2C 0x40，寄存器 0xA0/0xA1）
 ├── bsp_light.c/.h    # 光照传感器 ADC（GPIO36 = ADC1_CH0）
 ├── light_ctl.c/.h    # 光照突变检测状态机（遮一下切换手势）
 ├── metro_engine.c/.h # 节拍引擎：定时、拍型推进、细分、静音小节、暂停三态
