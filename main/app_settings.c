@@ -30,6 +30,7 @@ static metro_cfg_t s_cfg = {
 static int s_timer_min;
 static int s_light_ctrl = 1;
 static int s_led_follow = 1;
+static int s_auto_off = 1;
 static esp_timer_handle_t s_save_timer;
 
 static void load_from_nvs(void)
@@ -71,6 +72,10 @@ static void load_from_nvs(void)
     if (nvs_get_u8(h, "ledf", &ledf) == ESP_OK) {
         s_led_follow = (ledf != 0);
     }
+    uint8_t aoff = 0;
+    if (nvs_get_u8(h, "aoff", &aoff) == ESP_OK) {
+        s_auto_off = (aoff != 0);
+    }
     if (nvs_get_u8(h, "accent", &u8) == ESP_OK) {
         s_cfg.accent = (u8 != 0);
     }
@@ -99,6 +104,7 @@ static void save_now(void *arg)
     nvs_set_i32(h, "timer", s_timer_min);
     nvs_set_u8(h, "lctrl", s_light_ctrl ? 1 : 0);
     nvs_set_u8(h, "ledf", s_led_follow ? 1 : 0);
+    nvs_set_u8(h, "aoff", s_auto_off ? 1 : 0);
     nvs_set_u8(h, "accent", s_cfg.accent ? 1 : 0);
     err = nvs_commit(h);
     nvs_close(h);
@@ -159,6 +165,25 @@ void app_settings_set_led_follow(int on)
     s_led_follow = on ? 1 : 0;
     esp_timer_stop(s_save_timer);
     esp_timer_start_once(s_save_timer, SAVE_DEBOUNCE_US);
+}
+
+int app_settings_get_auto_off(void)
+{
+    return s_auto_off;
+}
+
+void app_settings_set_auto_off(int on)
+{
+    s_auto_off = on ? 1 : 0;
+    esp_timer_stop(s_save_timer);
+    esp_timer_start_once(s_save_timer, SAVE_DEBOUNCE_US);
+}
+
+void app_settings_flush(void)
+{
+    /* 防抖回调跑在 esp_timer 任务，先停再同步写，避免并发双写 */
+    esp_timer_stop(s_save_timer);
+    save_now(NULL);
 }
 
 int app_settings_get_timer_min(void)

@@ -6,6 +6,7 @@ idf_component_register(
          "bsp_led.c"
          "bsp_light.c"
          "light_ctl.c"
+         "power_ctl.c"
          "metro_engine.c"
          "app_settings.c"
          "ui.c"

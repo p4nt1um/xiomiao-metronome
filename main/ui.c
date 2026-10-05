@@ -1,5 +1,5 @@
 /*
- * UI：主界面（BPM 大字 + 拍点）、设置页（8 行滚动列表）、点击测速页。
+ * UI：主界面（BPM 大字 + 拍点）、设置页（滚动列表）、点击测速页。
  * 页面切换 = 删旧建新；根容器常驻，承接组焦点与按键分发。
  * ui_poll() 由主循环高频调用：提示音序列、测速超时、练习倒计时。
  */
@@ -20,6 +20,7 @@
 #include "bsp_led.h"
 #include "light_ctl.h"
 #include "metro_engine.h"
+#include "power_ctl.h"
 #include "ui.h"
 
 LV_FONT_DECLARE(ui_font_cn12);
@@ -58,13 +59,14 @@ typedef enum {
     SET_ROW_TIMER,
     SET_ROW_LCTRL,
     SET_ROW_LED,
+    SET_ROW_AUTOOFF,
     SET_ROW_TAP,
     SET_ROW_RESET,
     SET_ROW_COUNT,
 } set_row_id_t;
 
 static const char *s_set_labels[SET_ROW_COUNT] = {
-    "拍号", "细分", "重音", "音量", "静音小节", "练习计时", "光控暂停", "LED跟拍", "点击测速", "恢复默认",
+    "拍号", "细分", "重音", "音量", "静音小节", "练习计时", "光控暂停", "LED跟拍", "自动关机", "点击测速", "恢复默认",
 };
 static const char *s_subdiv_names[METRO_SUBDIV_MAX] = {"四分", "八分", "三连音", "十六分"};
 static const int s_timer_choices[APP_TIMER_CHOICE_COUNT] = APP_TIMER_CHOICES;
@@ -466,6 +468,9 @@ static void set_value_text(char *buf, size_t len, int row)
     case SET_ROW_LED:
         snprintf(buf, len, "◀ %s ▶", app_settings_get_led_follow() ? "开" : "关");
         break;
+    case SET_ROW_AUTOOFF:
+        snprintf(buf, len, "◀ %s ▶", app_settings_get_auto_off() ? "开" : "关");
+        break;
     case SET_ROW_TAP:
         snprintf(buf, len, "A:进入");
         break;
@@ -854,11 +859,15 @@ static void settings_adjust(int dir)
     case SET_ROW_LED:
         app_settings_set_led_follow(dir > 0);
         break;
+    case SET_ROW_AUTOOFF:
+        app_settings_set_auto_off(dir > 0);
+        break;
     default:
         return;
     }
 
-    if (s_ui.sel != SET_ROW_TIMER && s_ui.sel != SET_ROW_LCTRL && s_ui.sel != SET_ROW_LED) {
+    if (s_ui.sel != SET_ROW_TIMER && s_ui.sel != SET_ROW_LCTRL && s_ui.sel != SET_ROW_LED &&
+        s_ui.sel != SET_ROW_AUTOOFF) {
         apply_cfg_change();
     }
     settings_refresh_rows();
@@ -894,6 +903,8 @@ static void settings_on_enter(void)
 static void key_event_cb(lv_event_t *e)
 {
     const uint32_t key = lv_event_get_key(e);
+
+    power_ctl_reset(); /* 任意按键都算活动 */
 
     if (s_ui.page == UI_PAGE_MAIN) {
         switch (key) {
@@ -1032,6 +1043,9 @@ void ui_on_beat(const metro_beat_event_t *ev)
 
 void ui_poll(void)
 {
+    /* 空闲超时自动关机（可能进入深睡不返回，须最先执行） */
+    power_ctl_poll(metro_engine_state() == METRO_STATE_RUNNING);
+
     beeps_poll();
     reset_hold_poll();
     leds_poll();

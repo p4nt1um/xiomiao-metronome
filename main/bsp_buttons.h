@@ -22,3 +22,6 @@ typedef enum {
 } bsp_button_id_t;
 
 bool bsp_buttons_is_pressed(bsp_button_id_t id);
+
+/* 是否有任意一键当前按下（原始电平，不消抖），供空闲判定等 */
+bool bsp_buttons_any_pressed(void);

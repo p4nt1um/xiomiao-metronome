@@ -43,6 +43,7 @@
 #define LVGL_TICK_PERIOD_MS         1
 
 #define ST7735_SWRESET              0x01
+#define ST7735_SLPIN                0x10
 #define ST7735_SLPOUT               0x11
 #define ST7735_NORON                0x13
 #define ST7735_INVOFF               0x20
@@ -283,6 +284,26 @@ void bsp_lcd_display_on(void)
     st7735_tx_param(s_lcd_io_handle, ST7735_DISPON, NULL, 0);
     st7735_delay_ms(20);
     s_lcd_display_on = true;
+}
+
+void bsp_lcd_display_off(void)
+{
+    if (!s_lcd_display_on || !s_lcd_io_handle) {
+        return;
+    }
+
+    st7735_tx_param(s_lcd_io_handle, ST7735_DISPOFF, NULL, 0);
+    s_lcd_display_on = false;
+}
+
+void bsp_lcd_sleep_in(void)
+{
+    if (!s_lcd_io_handle) {
+        return;
+    }
+
+    st7735_tx_param(s_lcd_io_handle, ST7735_SLPIN, NULL, 0);
+    st7735_delay_ms(120); /* 面板睡眠建立时间 */
 }
 
 bool bsp_lcd_first_flush_done(void)

@@ -28,6 +28,7 @@
 #include "bsp_light.h"
 #include "light_ctl.h"
 #include "metro_engine.h"
+#include "power_ctl.h"
 #include "ui.h"
 
 #define LVGL_TASK_STACK_SIZE    (10 * 1024)
@@ -45,6 +46,7 @@ static void lvgl_task(void *arg)
 {
     lv_group_t *group = (lv_group_t *)arg;
 
+    power_ctl_init();
     ui_init(group);
     lv_refr_now(NULL);
     for (int i = 0; i < 100 && !bsp_lcd_first_flush_done(); ++i) {
@@ -94,6 +96,7 @@ static void lvgl_task(void *arg)
 void app_main(void)
 {
     ESP_LOGI(TAG, "xiomiao-metronome boot (M1)");
+    power_ctl_boot_wake_check();
 
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {

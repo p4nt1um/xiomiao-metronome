@@ -73,6 +73,16 @@ bool bsp_buttons_is_pressed(bsp_button_id_t id)
     return gpio_get_level(s_buttons[id].gpio) == BUTTON_ACTIVE_LEVEL;
 }
 
+bool bsp_buttons_any_pressed(void)
+{
+    for (size_t i = 0; i < sizeof(s_buttons) / sizeof(s_buttons[0]); ++i) {
+        if (gpio_get_level(s_buttons[i].gpio) == BUTTON_ACTIVE_LEVEL) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void keypad_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
     (void)indev;
@@ -80,6 +90,9 @@ static void keypad_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
     static int stable_index = -1;
     static uint32_t raw_changed_ms = 0;
     static uint32_t last_key = LV_KEY_ENTER;
+    /* 开机时已按住的键（如 A 键唤醒后未松开）不算按键：
+     * 吞掉全部事件直到 6 键都松开，避免唤醒即触发启停等误操作 */
+    static bool boot_guard = true;
     int raw_index = -1;
     const uint32_t now_ms = lv_tick_get();
 
@@ -88,6 +101,15 @@ static void keypad_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
             raw_index = (int)i;
             break;
         }
+    }
+
+    if (boot_guard) {
+        if (raw_index >= 0) {
+            data->state = LV_INDEV_STATE_RELEASED;
+            data->key = last_key;
+            return;
+        }
+        boot_guard = false;
     }
 
     if (raw_index != last_raw_index) {

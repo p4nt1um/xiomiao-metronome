@@ -18,5 +18,11 @@ void bsp_lcd_start_lvgl_tick(void);
 /* 首帧已刷出后打开屏幕显示（防开机白屏） */
 void bsp_lcd_display_on(void);
 
+/* 面板停止显示（DISPOFF），进深睡前使用 */
+void bsp_lcd_display_off(void);
+
+/* 面板进入睡眠（SLPIN）；唤醒后由开机初始化序列恢复 */
+void bsp_lcd_sleep_in(void);
+
 /* 首帧 flush 是否已完成 */
 bool bsp_lcd_first_flush_done(void);
